@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard — HSC Studies of Religion II Quiz</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f6f2e7; --card:#fffcf5; --ink:#241d16; --ink2:#75695a; --accent:#a3791f; --accent2:#c9a227; --good:#218a63; --bad:#c0433f; --gold:#b5860f; --line:#e5dcc4;
+      --au:#c76a26; --ch:#3f6fb0; --is:#238264; --pe:#a3791f; --nr:#7c5aa8;}
+*{box-sizing:border-box; margin:0; padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink)}
+.wrap{max-width:1080px; margin:0 auto; padding:20px}
+h1,h2{font-family:Georgia,'Times New Roman',serif}
+h1{font-size:1.4rem} h2{font-size:1.05rem; margin-bottom:12px}
+.muted{color:var(--ink2); font-size:.88rem}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(60,45,10,.08)}
+.btn{border:none; border-radius:10px; padding:10px 18px; font-size:.92rem; font-weight:600; cursor:pointer; background:#efe6d0; color:var(--ink)}
+.btn.primary{background:var(--accent); color:#fff}
+.btn.danger{background:#fdeaee; color:var(--bad)}
+.btn.small{padding:6px 10px; font-size:.8rem}
+input,textarea,select{border:1px solid var(--line); border-radius:10px; padding:10px; font-size:.95rem; width:100%; font-family:inherit}
+table{width:100%; border-collapse:collapse; font-size:.9rem}
+th,td{padding:9px 8px; text-align:left; border-bottom:1px solid var(--line)}
+th{color:var(--ink2); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; cursor:pointer}
+.statgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px}
+.stat{background:#f1ead9; border-radius:12px; padding:14px; text-align:center}
+.stat .v{font-size:1.5rem; font-weight:800} .stat .l{font-size:.72rem; color:var(--ink2); text-transform:uppercase}
+.heat{display:inline-block; min-width:58px; text-align:center; padding:4px 6px; border-radius:8px; font-weight:600; font-size:.82rem}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.pill{display:inline-block; border-radius:99px; padding:2px 10px; font-size:.75rem; font-weight:700}
+.banner{background:#fff7e0; color:#8a6d00; border:1px solid #f0dfa0; padding:10px 14px; border-radius:10px; font-size:.85rem; margin-bottom:14px; display:none}
+.tabs{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap}
+.tab{padding:9px 18px; border-radius:10px; cursor:pointer; font-weight:600; font-size:.9rem; background:#efe6d0}
+.tab.on{background:var(--accent); color:#fff}
+.pane{display:none} .pane.on{display:block}
+.tbar{height:14px; background:#ece2c8; border-radius:99px; overflow:hidden; flex:1}
+.tbar>div{height:100%; border-radius:99px}
+.topicrow{display:flex; align-items:center; gap:10px; margin:7px 0}
+.answerbox{background:#f8f9fe; border:1px solid var(--line); border-radius:10px; padding:14px; font-size:.93rem; line-height:1.6; white-space:pre-wrap; max-height:340px; overflow-y:auto}
+.crittable{width:100%; border-collapse:collapse; margin-top:8px; font-size:.88rem}
+.crittable th{text-align:left; color:var(--ink2); font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; padding:6px 8px; border-bottom:1px solid var(--line)}
+.crittable td{padding:8px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5}
+.crittable .critmark{font-weight:800; color:var(--accent); white-space:nowrap; text-align:center; width:60px}
+.crittable .critpart td{background:#f3ecd8; font-weight:700; color:var(--ink); font-size:.85rem}
+.markitem{border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; background:#fff}
+.markitem.done{background:#fbfcff}
+.markbtns{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+.markbtns .btn{min-width:44px}
+.markbtns .btn.sel{background:var(--accent); color:#fff}
+.copybar{display:flex; gap:14px; justify-content:space-between; align-items:center; flex-wrap:wrap;
+         background:#f3ecd8; border:1px solid #e3d6ae; border-radius:12px; padding:14px; margin-bottom:16px; font-size:.88rem}
+.aibox{background:#f3ecd8; border:1px solid #e3d6ae; border-radius:10px; padding:12px; margin-top:12px; font-size:.88rem}
+.aibox .ai-h{font-weight:800; color:var(--accent); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px}
+.qthumb{max-width:100%; border-radius:8px; border:1px solid var(--line); margin-top:8px}
+/* Questions written for this bank (no exam scan) render as text instead — same
+   markup and class names the student site uses for its stim/table/chart blocks. */
+.qtext{text-align:left; color:#1a1a1a; font-size:.93rem; line-height:1.55; background:#fff; border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-top:8px}
+.qtext .qstem{margin:0 0 10px; font-weight:600}
+.qtext ol.qopts{list-style:none; margin:0; padding:0; display:grid; gap:5px}
+.qtext ol.qopts li{display:flex; gap:9px; align-items:flex-start}
+.qtext ol.qopts li b{flex:none; width:16px; font-weight:700}
+.qtext .qmarks{margin:8px 0 0; font-weight:700}
+.qtext .qnewtag{display:none}
+.qtext .stimlabel{font-size:.66rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#6b6f7a; margin-bottom:6px}
+.qtext .stimbox{border:1px solid #d8d8dc; border-radius:8px; padding:10px 12px; margin:0 0 12px; background:#fafafa}
+.qtext .stimbox.extract{font-style:italic; color:#333}
+.qtext .stimtable{width:100%; border-collapse:collapse; font-size:.86rem}
+.qtext .stimtable caption{caption-side:top; text-align:left; font-weight:700; font-style:normal; font-size:.82rem; margin-bottom:6px; color:#1a1a1a}
+.qtext .stimtable th, .qtext .stimtable td{border:1px solid #d8d8dc; padding:5px 8px; text-align:left}
+.qtext .stimtable th{background:#f0f0f2; font-weight:700}
+.qtext .stimchart{margin:0 0 12px; border:1px solid #d8d8dc; border-radius:8px; padding:8px 10px 4px; background:#fff}
+.qtext .stimchart .stimcap{font-weight:700; font-size:.82rem; margin-bottom:4px; color:#1a1a1a}
+.qtext .stimchart svg{width:100%; height:auto; display:block}
+.qtext .stimnote{font-size:.76rem; color:#555; margin-top:6px; font-style:italic}
+.qtext .stimlegend{display:flex; gap:14px; flex-wrap:wrap; font-size:.75rem; margin-top:4px; color:#333}
+.qtext .stimlegend span{display:inline-flex; align-items:center; gap:5px}
+.qtext .stimlegend i{display:inline-block; width:14px; height:3px; border-radius:2px}
+.spread{display:inline-flex; gap:4px; align-items:center}
+.spread span{background:#ece2c8; border-radius:6px; padding:1px 7px; font-size:.78rem; font-weight:700}
+.badgegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-top:4px}
+.badge{background:#f1ead9; border:1px solid var(--line); border-radius:12px; padding:12px 8px; text-align:center}
+.badge .be{font-size:1.7rem; line-height:1.2}
+.badge .bn{font-size:.78rem; font-weight:700; margin-top:4px}
+.badge .bd{font-size:.68rem; color:var(--ink2); margin-top:3px; line-height:1.3}
+dialog{border:none; border-radius:14px; padding:24px; max-width:640px; width:92%; box-shadow:0 10px 40px rgba(0,0,0,.2)}
+dialog::backdrop{background:rgba(36,29,22,.4)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="localBanner" class="banner">⚠️ Device-only mode: you're seeing results saved in <b>this browser</b> only. Set up Firebase (SETUP.md) to see every student's results.</div>
+  <div id="loadError" class="banner" style="background:#fdeaee; color:#8a1230; border-color:#f3c0cb"></div>
+
+  <div id="scr-login" style="max-width:380px; margin:80px auto">
+    <div class="card" style="text-align:center">
+      <div style="font-size:2rem">🔐</div>
+      <h1 style="margin:8px 0">Teacher Dashboard</h1>
+      <p class="muted" style="margin-bottom:14px">HSC Studies of Religion II Quiz Arena</p>
+      <label for="teacherPw" class="muted" style="display:block; text-align:left; margin-bottom:6px">Password</label>
+      <input type="password" id="teacherPw" placeholder="Dashboard password" autocomplete="current-password" onkeydown="if(event.key==='Enter')checkPassword()">
+      <button class="btn primary" style="width:100%; margin-top:10px" onclick="checkPassword()">Sign in</button>
+      <p id="pwErr" style="color:var(--bad); display:none; margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div id="scr-dash" style="display:none">
+    <div class="row" style="justify-content:space-between; margin-bottom:16px">
+      <h1>📊 Class Dashboard</h1>
+      <div class="row">
+        <a id="studentLink" class="btn" style="text-decoration:none; display:none" target="_blank">Student site ↗</a>
+        <button class="btn" onclick="load()">↻ Refresh</button>
+        <button class="btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab on" data-p="overview">Overview</div>
+      <div class="tab" data-p="students">Students</div>
+      <div class="tab" data-p="topics">Topic analysis</div>
+      <div class="tab" data-p="marking">Marking <span id="markCount" class="pill" style="background:#fdeaee; color:var(--bad); display:none"></span></div>
+      <div class="tab" data-p="battle">Class battle</div>
+      <div class="tab" data-p="roster">Class list</div>
+      <div class="tab" data-p="settings">Settings</div>
+    </div>
+
+    <div class="pane on" id="pane-overview">
+      <div class="card"><div class="statgrid" id="classStats"></div></div>
+      <div class="card"><h2>Class accuracy by topic</h2><div id="classTopics"></div></div>
+      <div class="card"><h2>Weakest syllabus areas (class-wide, min 5 attempts)</h2><div id="classWeak"></div></div>
+      <div class="card"><h2>Recent activity</h2><div id="recent"></div></div>
+    </div>
+
+    <div class="pane" id="pane-students">
+      <div class="card">
+        <h2>Student results <span class="muted">(click a row for detail)</span></h2>
+        <div class="row" id="studentFilter" style="margin-bottom:12px"></div>
+        <div id="studentTable"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-marking">
+      <div class="card">
+        <h2>Marking queue</h2>
+        <p class="muted" style="margin-bottom:12px" id="markingIntro"></p>
+        <div class="row" id="markingFilter" style="margin-bottom:10px"></div>
+        <div class="copybar">
+          <div>
+            <b>📋 Mark with Cowork</b>
+            <div class="muted" style="margin-top:2px">Copy an answer, paste it into Cowork, and it comes back with a mark and feedback against the NESA guidelines. Then enter the mark below and approve.</div>
+          </div>
+          <div class="row" style="flex-shrink:0">
+            <button class="btn small" onclick="copyAllPending()">Copy all in this filter</button>
+            <span class="muted" id="copyAllStatus"></span>
+          </div>
+        </div>
+        <div id="markingQueue"></div>
+      </div>
+      <div class="card">
+        <h2>Already marked</h2>
+        <p class="muted" style="margin-bottom:12px">Peer marks are shown where students have marked this answer. A wide spread means the criteria are worth revisiting in class.</p>
+        <div id="markedList"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-battle">
+      <div class="card">
+        <h2>⚔️ Class vs class</h2>
+        <p class="muted" style="margin-bottom:14px">Three scoreboards — total XP rewards volume, average accuracy rewards precision, average XP per active player keeps unequal class sizes fair.</p>
+        <div id="battleBody"></div>
+      </div>
+      <div class="card">
+        <h2>Class accuracy by topic</h2>
+        <div id="battleTopics"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-topics">
+      <div class="card">
+        <h2>Accuracy heatmap — student × topic</h2>
+        <p class="muted" style="margin-bottom:10px">Green ≥ 75% · amber 50–74% · red &lt; 50% · grey = not attempted</p>
+        <div id="heatmap" style="overflow-x:auto"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-roster">
+      <div class="card">
+        <h2>Add students</h2>
+        <p class="muted" style="margin-bottom:8px">One name per line. Students pick their name from this list on the student site, then set a 4-digit PIN the first time they sign in.</p>
+        <textarea id="newNames" rows="5" placeholder="Jane Citizen&#10;Sam Smith"></textarea>
+        <div class="row" style="margin-top:10px">
+          <label class="muted" for="newClass">Add to class</label>
+          <select id="newClass" style="width:auto"></select>
+          <button class="btn primary" onclick="addNames()">Add to class list</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Current class list</h2>
+        <p class="muted" style="margin-bottom:10px">Set each student's class — it saves as soon as you change it, and the student game picks it up on their next sign-in. Reset a forgotten PIN or delete a student's results from their row in the Students tab.</p>
+        <div class="row" id="rosterFilter" style="margin-bottom:12px"></div>
+        <div id="rosterList"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-settings">
+      <div class="card">
+        <h2>Dashboard password</h2>
+        <p class="muted" style="margin-bottom:10px">Overrides <code>TEACHER_PASSWORD</code> in <code>config.js</code> for everyone opening this dashboard. Leave blank and save to go back to the password in <code>config.js</code>.</p>
+        <div class="row">
+          <input type="password" id="settingsPw" placeholder="New dashboard password" style="max-width:280px" autocomplete="new-password">
+          <button class="btn primary" onclick="saveTeacherPassword()">Save password</button>
+        </div>
+        <p class="muted" id="pwSaveMsg" style="margin-top:8px; display:none"></p>
+      </div>
+      <div class="card">
+        <h2>Classes</h2>
+        <p class="muted" style="margin-bottom:10px">Overrides <code>CLASSES</code> in <code>config.js</code> for both sites. Comma-separated, in the order you want them shown.</p>
+        <div class="row">
+          <input type="text" id="settingsClasses" placeholder="DRO, DJK" style="max-width:280px">
+          <button class="btn primary" onclick="saveClassesSetting()">Save classes</button>
+        </div>
+        <p class="muted" style="margin-top:8px">Current: <b id="settingsClassesNow"></b></p>
+      </div>
+      <div class="card">
+        <h2>Quiz options</h2>
+        <p class="muted" style="margin-bottom:10px">Overrides the matching values in <code>QUIZ_OPTIONS</code> in <code>quiz-game/config.js</code>.</p>
+        <div class="row">
+          <div><label class="muted" for="settingsTimer">Seconds per question (timed quizzes)</label><input type="number" id="settingsTimer" min="10" max="600" style="max-width:160px"></div>
+          <div><label class="muted" for="settingsXpCorrect">XP per correct answer</label><input type="number" id="settingsXpCorrect" min="1" max="100" style="max-width:160px"></div>
+          <div><label class="muted" for="settingsXpMark">XP per short-answer mark</label><input type="number" id="settingsXpMark" min="1" max="100" style="max-width:160px"></div>
+        </div>
+        <button class="btn primary" style="margin-top:10px" onclick="saveQuizOptions()">Save quiz options</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="detailDlg">
+  <div class="row" style="justify-content:space-between; margin-bottom:10px">
+    <h2 id="dlgName" style="margin:0"></h2>
+    <button class="btn small" onclick="document.getElementById('detailDlg').close()">✕ Close</button>
+  </div>
+  <div id="dlgBody"></div>
+</dialog>
+
+<script src="config.js"></script>
+<script src="syllabus.js"></script>
+<script src="data-sa.js"></script>
+<script src="store.js"></script>
+<script src="marker.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const TOPIC_VARNAME = {
+  'Australia post-1945':'--au', 'Christianity':'--ch', 'Islam':'--is',
+  'Religion and Peace':'--pe', 'Religion and Non-Religion':'--nr'
+};
+const TOPIC_COLORS = Object.fromEntries(Object.keys(SYLLABUS).map(t =>
+  [t, `var(${TOPIC_VARNAME[t] || '--accent'})`]));
+let students = [], roster = [], responses = [], classMap = {}, studentFilter = 'all', rosterFilter = 'all', markFilter = 'all';
+const CLS = () => Store.classList();
+function classOf(s){
+  if (!s) return null;                                   // a record with no student must not take the page down
+  const n = typeof s === 'string' ? s : s.name;
+  if (!n) return null;
+  return classMap[n] || (typeof s === 'object' && s.class) || null;
+}
+
+const cloud = Store.init();
+if (!cloud) $('localBanner').style.display = 'block';
+if (typeof STUDENT_SITE_URL !== 'undefined' && STUDENT_SITE_URL) {
+  const sl = $('studentLink'); sl.href = STUDENT_SITE_URL; sl.style.display = 'inline-block';
+}
+
+// ---------- sign-in: single shared dashboard password ----------
+// This is a convenience wall, not a cryptographic boundary — anyone who reads this
+// file (or the Firestore rules, which are open by design in this simple deployment)
+// can see there is no real per-user check. It is enough to keep casual visitors and
+// students out of the marking queue and roster; it is not enough to protect data you
+// actually need to keep private. Override the password from the Settings tab, or by
+// editing TEACHER_PASSWORD in config.js.
+(async function initAuth(){
+  try { await Store.applySettings(); } catch(e){}   // a settings-read failure must not block sign-in
+  if (sessionStorage.getItem('sorq_teacher_ok') === '1') enter();
+})();
+
+function showAuthMsg(msg){
+  $('pwErr').textContent = msg;
+  $('pwErr').style.display = msg ? 'block' : 'none';
+}
+function teacherPassword(){
+  return window.TEACHER_PASSWORD_OVERRIDE || (typeof TEACHER_PASSWORD !== 'undefined' && TEACHER_PASSWORD) || 'change-me';
+}
+function checkPassword(){
+  showAuthMsg('');
+  const pw = $('teacherPw').value || '';
+  if (pw !== teacherPassword()) { showAuthMsg('Incorrect password.'); return; }
+  sessionStorage.setItem('sorq_teacher_ok', '1');
+  $('teacherPw').value = '';
+  enter();
+}
+function enter(){ $('scr-login').style.display='none'; $('scr-dash').style.display='block'; load(); }
+function logout(){
+  sessionStorage.removeItem('sorq_teacher_ok');
+  $('scr-login').style.display='block'; $('scr-dash').style.display='none';
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x => x.classList.remove('on'));
+  t.classList.add('on'); $('pane-' + t.dataset.p).classList.add('on');
+}));
+
+async function load(){
+  $('loadError').style.display = 'none';
+  try {
+    students = await Store.getAllStudents();
+    classMap = await Store.getClassMap();
+    responses = await Store.getAllResponses();
+    const removed = await Store.getRemoved();
+    roster = (await Store.getRoster()).filter(n => !removed.includes(n));
+  } catch(e){
+    // a failed read used to leave the whole dashboard silently blank
+    showLoadError('Couldn\'t read from Firebase', e);
+    return;
+  }
+  // rebuilt every load (not just once) so a class renamed/added in Settings shows up
+  // here without a full page reload; keep the current pick if it still exists.
+  {
+    const prevSel = $('newClass').value;
+    $('newClass').innerHTML = '';
+    CLS().forEach(c => $('newClass').add(new Option(c, c)));
+    if (CLS().includes(prevSel)) $('newClass').value = prevSel;
+  }
+  // each panel is drawn independently so one bad record can only spoil its own panel
+  const panels = {Overview: renderOverview, Students: renderStudents, 'Topic analysis': renderHeatmap,
+                  'Class battle': renderBattle, 'Class list': renderRoster, Marking: renderMarking, Settings: renderSettings};
+  const broke = [];
+  for (const [name, fn] of Object.entries(panels)) {
+    try { fn(); } catch(e){ broke.push(name + ' (' + e.message + ')'); console.error(name, e); }
+  }
+  if (broke.length) showLoadError('Some tabs could not be drawn', {message: broke.join('; ')});
+}
+function showLoadError(headline, e){
+  const b = $('loadError');
+  b.style.display = 'block';
+  b.innerHTML = '<b>' + esc(headline) + '.</b> ' + esc((e && e.message) || String(e)) +
+    '<br><span style="opacity:.8">If this mentions <i>permission</i>, check your Firestore security rules. Reload once you\'ve changed them.</span>';
+}
+
+function filterBar(elId, current, fn){
+  const btn = (v,l) => `<button class="btn small ${current===v?'primary':''}" onclick="${fn}('${v}')">${l}</button>`;
+  $(elId).innerHTML = btn('all','All classes') + CLS().map(c => btn(c,c)).join('') + btn('none','Unassigned');
+}
+function inFilter(name, f){
+  if (f === 'all') return true;
+  const c = classMap[name] || null;
+  return f === 'none' ? !c : c === f;
+}
+
+function acc(s){ return s.totals.answered ? s.totals.correct / s.totals.answered : null; }
+function pct(x){ return x === null ? '—' : Math.round(x*100) + '%'; }
+function heatCell(a){
+  if (a === null) return `<span class="heat" style="background:#ece2c8; color:#aab">—</span>`;
+  const bg = a >= .75 ? '#d9f2e5' : a >= .5 ? '#fdf3d7' : '#fdeaee';
+  const fg = a >= .75 ? 'var(--good)' : a >= .5 ? '#9a7b12' : 'var(--bad)';
+  return `<span class="heat" style="background:${bg}; color:${fg}">${Math.round(a*100)}%</span>`;
+}
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' ' + new Date(ts).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function modeLabel(a){
+  switch (a.mode) {
+    case 'shortanswer': return '✍️ Short answer';
+    case 'mistakes':    return '🔁 Mistakes';
+    case 'daily':       return '📆 Daily';
+    case 'survival':    return '💀 Survival';
+    case 'exam':        return '📄 Exam sim';
+    case 'duel':        return '🥊 Duel';
+    case 'peermark':    return '⚖️ Peer marking';
+    case 'matching':    return '🔗 Matching';
+    case 'flashcards':  return '🎴 Flashcards';
+    case 'defquiz':     return '📖 Definitions';
+    case 'chains':      return '⛓️ Chain builder';
+    case 'diagrams':    return '📐 Diagrams';
+    case 'mapper':      return '🗺️ Content mapper';
+    case 'syllabus':    return '🧠 Syllabus drill';
+    default:            return (a.timed ? '⏱ ' : '') + 'Quiz';
+  }
+}
+function scoreLabel(a){
+  if (a.mode === 'survival') return `<b>${a.runLength ?? a.c}</b> in a row`;
+  // peer marking records no questions of its own — show what it actually did
+  if (a.mode === 'peermark') return `<b>${a.marked ?? 0}</b> marked · ${a.exact ?? 0} spot on`;
+  if (!a.n) return '<span class="muted">—</span>';
+  return `<b>${a.c}/${a.n}</b> (${Math.round(a.c/a.n*100)}%${a.mode === 'shortanswer' ? ' of marks' : ''})`;
+}
+// peer marking is bookkeeping, not a quiz the student sat
+function quizCount(s){ return (s.attempts || []).filter(a => a.mode !== 'peermark').length; }
+
+function renderOverview(){
+  const active = students.filter(s => s.attempts.length);
+  const totQ = active.reduce((a,s) => a + s.totals.answered, 0);
+  const totC = active.reduce((a,s) => a + s.totals.correct, 0);
+  const totQuizzes = active.reduce((a,s) => a + quizCount(s), 0);
+  const awaiting = responses.filter(r => r.status !== 'marked').length;
+  $('classStats').innerHTML =
+    st(roster.length, 'On class list') + st(active.length, 'Have played') +
+    st(totQuizzes, 'Quizzes done') + st(totQ, 'Questions answered') +
+    st(totQ ? Math.round(totC/totQ*100) + '%' : '—', 'Class accuracy') +
+    st(awaiting ? `<span style="color:var(--bad)">${awaiting}</span>` : '0', 'Awaiting marking');
+  // topic accuracy
+  let th = '';
+  for (const topic of Object.keys(SYLLABUS)) {
+    let c = 0, t = 0;
+    active.forEach(s => { const p = s.totals.perTopic[topic]; if (p) { c += p[0]; t += p[1]; } });
+    const p = t ? c/t*100 : 0;
+    th += `<div class="topicrow"><span style="width:130px; font-size:.87rem">${topic}</span><div class="tbar"><div style="width:${p}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:90px; text-align:right">${t ? Math.round(p) + '% (' + c + '/' + t + ')' : 'no data'}</span></div>`;
+  }
+  $('classTopics').innerHTML = th || '<p class="muted">No data yet.</p>';
+  // weakest subtopics
+  const agg = {};
+  active.forEach(s => { for (const [k,v] of Object.entries(s.totals.perSub)) { const a = agg[k] = agg[k] || [0,0]; a[0]+=v[0]; a[1]+=v[1]; } });
+  const weak = Object.entries(agg).filter(([,v]) => v[1] >= 5)
+    .map(([k,v]) => ({k, a: v[0]/v[1], v})).sort((x,y) => x.a - y.a).slice(0,8);
+  $('classWeak').innerHTML = weak.length ? weak.map(w => {
+    const [topic, sub] = w.k.split('|');
+    return `<div class="topicrow"><span style="width:260px; font-size:.85rem">${sub} <span class="muted">(${topic})</span></span><div class="tbar"><div style="width:${w.a*100}%; background:${w.a<.5?'var(--bad)':w.a<.75?'var(--gold)':'var(--good)'}"></div></div><span class="muted" style="width:60px; text-align:right">${w.v[0]}/${w.v[1]}</span></div>`;
+  }).join('') : '<p class="muted">Not enough data yet — needs 5+ class attempts per area.</p>';
+  // recent activity
+  const recent = active.flatMap(s => s.attempts.map(a => ({name: s.name, ...a})))
+    .sort((a,b) => b.d - a.d).slice(0,10);
+  $('recent').innerHTML = recent.length ? '<table><tr><th>When</th><th>Student</th><th>Mode</th><th>Score</th><th>Time</th></tr>' +
+    recent.map(r => `<tr><td>${fmtDate(r.d)}</td><td>${esc(r.name)}</td><td>${modeLabel(r)}</td><td>${scoreLabel(r)}</td><td>${Math.round(r.timeSec/60)}m</td></tr>`).join('') + '</table>'
+    : '<p class="muted">No quizzes played yet.</p>';
+  function st(v,l){ return `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+}
+
+let sortKey = 'xp', sortDir = -1;
+function renderStudents(){
+  filterBar('studentFilter', studentFilter, 'setStudentFilter');
+  const active = students.filter(s => s.attempts.length && inFilter(s.name, studentFilter));
+  const rows = active.map(s => ({
+    name: s.name, cls: classOf(s) || '—', quizzes: quizCount(s), answered: s.totals.answered,
+    acc: acc(s), xp: s.xp, last: s.attempts.length ? s.attempts[s.attempts.length-1].d : 0, _s: s
+  }));
+  rows.sort((a,b) => { const x = a[sortKey] ?? -1, y = b[sortKey] ?? -1; return x < y ? sortDir : x > y ? -sortDir : 0; });
+  $('studentTable').innerHTML = rows.length ? '<table><tr>' +
+    ['name','cls','quizzes','answered','acc','xp','last'].map(k =>
+      `<th onclick="sortBy('${k}')">${{name:'Student',cls:'Class',quizzes:'Quizzes',answered:'Questions',acc:'Accuracy',xp:'XP',last:'Last active'}[k]}${sortKey===k ? (sortDir===1?' ▼':' ▲') : ''}</th>`).join('') + '</tr>' +
+    rows.map((r,i) => `<tr style="cursor:pointer" onclick="showDetail(${i})">
+      <td><b>${esc(r.name)}</b></td><td>${esc(r.cls)}</td><td>${r.quizzes}</td><td>${r.answered}</td>
+      <td>${heatCell(r.acc)}</td><td>${r.xp}</td><td class="muted">${r.last ? fmtDate(r.last) : '—'}</td></tr>`).join('') + '</table>'
+    : '<p class="muted">No students have played yet.</p>';
+  window._rows = rows;
+}
+function sortBy(k){ if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = -1; } renderStudents(); }
+function setStudentFilter(v){ studentFilter = v; renderStudents(); }
+
+// ================= MARKING =================
+const SA_BY_ID = Object.fromEntries((typeof SA_QUESTIONS !== 'undefined' ? SA_QUESTIONS : []).map(q => [q.id, q]));
+// Question images live with the student site; resolve against it so they load here too.
+function qImgUrl(q){
+  if (!q) return '';
+  const base = (typeof STUDENT_SITE_URL !== 'undefined' && STUDENT_SITE_URL) ? STUDENT_SITE_URL.replace(/\/?$/, '/') : '';
+  return base + q.img;
+}
+// Questions written for this bank (src:'new') have no exam scan — render the stem,
+// options/marks and any stimulus (table/chart/extract) as text instead. Identical
+// markup and class names to the student site's stemHTML, so the same q.stim HTML
+// (trusted, hand-authored — never user input) renders unescaped here too.
+function stemHTML(q){
+  const opts = q.options
+    ? '<ol class="qopts">' + ['A','B','C','D'].filter(l => q.options[l])
+        .map(l => `<li><b>${l}</b><span>${esc(q.options[l])}</span></li>`).join('') + '</ol>'
+    : '';
+  const marks = (!q.options && q.marks)
+    ? `<p class="qmarks">${q.marks} mark${q.marks === 1 ? '' : 's'}</p>` : '';
+  return (q.stim || '') + `<p class="qstem">${esc(q.stem)}</p>` + opts + marks;
+}
+const draftMarks = {};   // responseId -> mark the teacher has clicked but not yet approved
+
+function renderMarking(){
+  const pending = responses.filter(r => r.status !== 'marked' && inFilter(r.student, markFilter))
+    .sort((a,b) => a.submitted - b.submitted);          // oldest first — fairest to students
+  const marked = responses.filter(r => r.status === 'marked' && inFilter(r.student, markFilter))
+    .sort((a,b) => b.markedAt - a.markedAt);
+
+  const allPending = responses.filter(r => r.status !== 'marked').length;
+  const chip = $('markCount');
+  if (allPending) { chip.style.display = 'inline-block'; chip.textContent = allPending; }
+  else chip.style.display = 'none';
+
+  filterBar('markingFilter', markFilter, 'setMarkFilter');
+  // Describe what's actually in the queue below, not the unfiltered total — otherwise
+  // switching to a single class still claimed "20 answers waiting" while showing 2.
+  $('markingIntro').textContent = pending.length
+    ? pending.length + ' answer' + (pending.length===1?'':'s') + ' waiting to be marked. Students see nothing until you approve a mark.'
+    : 'Nothing waiting — you\'re all caught up.';
+
+  // One unrenderable answer must never blank the whole queue — draw it as a card
+  // that shows what is actually in the record, and carry on with the rest.
+  $('markingQueue').innerHTML = pending.length ? pending.map(r => safeRow(markItemHtml, r)).join('')
+    : '<p class="muted">Nothing in this filter.</p>';
+
+  $('markedList').innerHTML = marked.length ? marked.slice(0,40).map(r => safeRow(markedRowHtml, r)).join('')
+    : '<p class="muted">Nothing marked yet.</p>';
+}
+function safeRow(fn, r){
+  try { return fn(r); }
+  catch(e){
+    console.error('Could not render response', r && r.id, e);
+    return `<div class="markitem" style="border-color:var(--bad)">
+      <b style="color:var(--bad)">⚠️ This answer couldn't be displayed</b>
+      <p class="muted" style="margin-top:6px">${esc(e.message)} — every other answer in the queue is unaffected.</p>
+      <details class="rev" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Show what's actually stored</summary>
+        <div class="answerbox" style="margin-top:6px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.8rem">${esc(JSON.stringify(r, null, 2))}</div>
+      </details></div>`;
+  }
+}
+function markedRowHtml(r){
+  {
+    const peers = Object.values(r.peers || {});
+    const spread = peers.length
+      ? '<span class="spread">' + peers.map(p => `<span title="${Math.abs(p.mark-r.mark)} out">${p.mark}</span>`).join('') + '</span>'
+      : '<span class="muted">no peer marks</span>';
+    const off = peers.filter(p => Math.abs(p.mark - r.mark) >= 2).length;
+    return `<details class="rev"><summary style="cursor:pointer; padding:8px 0">
+        <b>${esc(r.student)}</b> <span class="muted">· ${esc(r.label)} ·</span> <b>${r.mark}/${r.max}</b>
+        &nbsp; peers: ${spread} ${off ? `<span class="pill" style="background:#fdeaee; color:var(--bad)">${off} way off</span>` : ''}
+      </summary>
+      <div style="padding:10px 0 4px"><b>Their answer</b><div class="answerbox" style="margin-top:6px">${esc(r.typed)}</div></div>
+      ${r.feedback ? `<div style="margin-top:8px"><b>Your feedback</b><div class="muted" style="margin-top:4px">${esc(r.feedback)}</div></div>` : ''}
+      <div class="row" style="margin-top:10px"><button class="btn small" onclick="reopenResponse('${r.id}')">Re-mark</button></div>
+    </details>`;
+  }
+}
+function setMarkFilter(v){ markFilter = v; renderMarking(); }
+
+// r.max can be missing on an older record; the question itself is the fallback.
+function maxMarksFor(r){ const q = SA_BY_ID[r.qid]; return r.max || (q && q.marks) || 0; }
+
+function markItemHtml(r){
+  const q = SA_BY_ID[r.qid];
+  const draft = draftMarks[r.id];
+  const ai = r.ai;
+  const max = maxMarksFor(r);
+  const chosen = draft !== undefined ? draft : (ai ? ai.mark : undefined);
+  const btns = Array.from({length: max + 1}, (_, m) =>
+    `<button class="btn small ${chosen === m ? 'sel' : ''}" onclick="pickMark('${r.id}',${m})">${m}</button>`).join('');
+  const cls = classOf(r.student);
+  return `<div class="markitem" id="mi-${r.id}">
+    <div class="row" style="justify-content:space-between">
+      <div><b>${r.student ? esc(r.student) : '<span style="color:var(--bad)">⚠️ no student name on this answer</span>'}</b> <span class="muted">${cls ? '· ' + esc(cls) : ''}</span></div>
+      <div class="muted">${esc(r.label)} · ${esc(r.topic)} · <b>${max || '?'} marks</b> · handed in ${fmtDate(r.submitted)}</div>
+    </div>
+    ${r.student ? '' : `<p class="muted" style="margin-top:8px; color:var(--bad)">This answer isn't linked to a student, so approving a mark will release it but won't add to anyone's totals. <a href="#" onclick="showRaw('${r.id}');return false;">See what's stored</a>.</p>`}
+    ${q ? `<details class="rev"><summary class="muted" style="cursor:pointer; margin-top:8px">Show the question</summary>
+        ${q.src === 'new' ? `<div class="qtext">${stemHTML(q)}</div>` : `<img class="qthumb" src="${qImgUrl(q)}" alt="${esc(r.label)}" loading="lazy">`}</details>` : ''}
+    <div style="margin-top:10px"><b>Their answer</b>
+      <div class="answerbox" style="margin-top:6px">${esc(r.typed)}</div></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn small" onclick="copyForMarking('${r.id}')">📋 Copy for marking</button>
+      ${Marker.enabled() && !ai ? `<button class="btn small" onclick="aiSuggest('${r.id}')">🤖 Get AI suggestion</button>` : ''}
+    </div>
+    ${ai ? `<div class="aibox">
+        <div class="ai-h">🤖 AI suggestion — ${ai.mark}/${max} · you decide</div>
+        <div>${esc(ai.feedback || '')}</div>
+        ${(ai.strengths||[]).length ? `<div style="margin-top:6px"><b style="color:var(--good)">✓</b> ${ai.strengths.map(esc).join(' · ')}</div>` : ''}
+        ${(ai.improvements||[]).length ? `<div style="margin-top:4px"><b style="color:var(--gold)">↑</b> ${ai.improvements.map(esc).join(' · ')}</div>` : ''}
+      </div>` : ''}
+    ${q ? `<details class="rev" style="margin-top:10px" open><summary>NESA marking criteria</summary>${criteriaTableHTML(q.criteria, max)}</details>
+           ${q.sample ? `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>` : ''}` : ''}
+    <div style="margin-top:12px"><b>Your mark</b>${max ? `<div class="markbtns">${btns}</div>`
+      : `<p class="muted" style="color:var(--bad); margin-top:4px">This answer doesn't record how many marks the question was worth, and question <b>${esc(r.qid || '?')}</b> isn't in <code>data-sa.js</code>, so there's no scale to mark against. <a href="#" onclick="showRaw('${r.id}');return false;">See what's stored</a>.</p>`}</div>
+    <textarea id="fb-${r.id}" rows="2" placeholder="Feedback for the student (optional)" style="margin-top:10px">${esc(r.feedback || (ai ? ai.feedback : '') || '')}</textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" onclick="approveMark('${r.id}')">Approve & release mark</button>
+      <span class="muted" id="ms-${r.id}"></span>
+    </div>
+  </div>`;
+}
+
+// used by the "see what's stored" link on an answer we can't fully understand
+function showRaw(id){
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  $('dlgName').textContent = 'Stored record — ' + id;
+  $('dlgBody').innerHTML = `<div class="answerbox" style="font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.8rem">${esc(JSON.stringify(r, null, 2))}</div>`;
+  $('detailDlg').showModal();
+}
+
+function pickMark(id, m){
+  draftMarks[id] = m;
+  const el = $('mi-' + id);
+  if (el) el.querySelectorAll('.markbtns .btn').forEach((b,i) => b.classList.toggle('sel', i === m));
+}
+
+// ---------- copy a response out for marking in Cowork ----------
+const MARK_PROMPT =
+`Mark this student's HSC Studies of Religion II short answer using the marking guidelines supplied with the question. Be critical in your marking — apply the guidelines the way a real HSC marker would, not generously. Award a whole number of marks out of the maximum.
+
+Give me:
+1. The mark, as a number out of the maximum.
+2. If it is not full marks, short feedback (2-3 sentences) telling the student what cost them marks and what would have earned more. If it is full marks, no feedback is needed.`;
+
+function markingBlock(r){
+  const q = SA_BY_ID[r.qid];
+  const parts = [MARK_PROMPT, '',
+    '--- QUESTION ---',
+    (r.year ? `${r.year} HSC SOR II — Question ${r.qn}${r.part ? '(' + r.part + ')' : ''}`
+            : `Written for this course — ${r.topic}`),
+    `Worth ${r.max} mark${r.max === 1 ? '' : 's'} · Topic: ${r.topic}`];
+  if (q && q.criteria) parts.push('', (r.year ? 'OFFICIAL NESA MARKING GUIDELINES:' : 'MARKING CRITERIA:'), q.criteria);
+  if (q && q.sample)   parts.push('', (r.year ? 'NESA SAMPLE ANSWER (guide to the expected standard):' : 'SAMPLE ANSWER (guide to the expected standard):'), q.sample);
+  parts.push('', "--- STUDENT'S ANSWER ---", r.typed, '', `--- END --- (mark out of ${r.max})`);
+  return parts.join('\n');
+}
+
+async function copyText(text, statusEl){
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch(e){
+    // file:// and older browsers block the async clipboard — fall back
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch(e2){}
+    document.body.removeChild(ta);
+    if (!ok) { if (statusEl) statusEl.textContent = 'Copy blocked — select the answer text manually.'; return false; }
+  }
+  if (statusEl) { statusEl.textContent = '✓ Copied — paste it into Cowork'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 4000); }
+  return true;
+}
+
+function copyForMarking(id){
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  copyText(markingBlock(r), $('ms-' + id));
+}
+
+function copyAllPending(){
+  const pending = responses.filter(r => r.status !== 'marked' && inFilter(r.student, markFilter))
+    .sort((a,b) => a.submitted - b.submitted);
+  if (!pending.length) return;
+  const blocks = pending.map((r,i) =>
+    `=========== ANSWER ${i+1} of ${pending.length} — ${r.student} (${r.label}) ===========\n\n` +
+    markingBlock(r).replace(MARK_PROMPT + '\n\n', ''));
+  const text = MARK_PROMPT.replace("Mark this student's", "Mark each of these students'")
+      .replace('this question', 'each question')
+      + `\n\nThere are ${pending.length} answers below. Give me the mark and feedback for each one, labelled with the student's name.\n\n`
+      + blocks.join('\n\n');
+  copyText(text, $('copyAllStatus'));
+}
+
+async function aiSuggest(id){
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  const q = SA_BY_ID[r.qid];
+  if (!q) return;
+  $('ms-' + id).textContent = 'Asking the AI…';
+  const res = await Marker.mark(q, {typed: r.typed});
+  if (!res.ok) { $('ms-' + id).textContent = res.err; return; }
+  const ai = {mark: res.mark, feedback: res.feedback, strengths: res.strengths || [], improvements: res.improvements || []};
+  await Store.setResponseAI(id, ai);
+  r.ai = ai;
+  renderMarking();
+}
+
+async function approveMark(id){
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  let mark = draftMarks[id] !== undefined ? draftMarks[id] : (r.ai ? r.ai.mark : undefined);
+  if (mark === undefined) { $('ms-' + id).textContent = 'Pick a mark first.'; return; }
+  // an AI suggestion (or a stale draft) can exceed the question's maximum, which
+  // would put the student over 100% of marks in their totals
+  mark = Math.max(0, Math.min(maxMarksFor(r), Math.round(Number(mark) || 0)));
+  const feedback = ($('fb-' + id) || {}).value || '';
+  $('ms-' + id).textContent = 'Saving…';
+
+  await Store.setResponseMark(id, mark, feedback);
+  Object.assign(r, {mark, feedback, status: 'marked', markedAt: Date.now()});
+
+  // credit the student — this is where short-answer marks enter their totals
+  const student = r.student ? await Store.getStudent(r.student) : null;
+  if (student) {
+    const res = applyTeacherMark(student, Object.assign({}, r, {max: maxMarksFor(r)}), mark, 0);
+    if (res) await Store.saveStudent(r.student, student);
+  } else {
+    // don't let this pass silently — the mark is released but credits nobody
+    alert('Mark saved and released, but no student record matched ' +
+          (r.student ? '"' + r.student + '"' : '(this answer has no student name on it)') +
+          ', so their XP and totals were not updated.');
+  }
+  delete draftMarks[id];
+  await load();
+  document.querySelector('.tab[data-p="marking"]').click();
+}
+
+async function reopenResponse(id){
+  if (!confirm("Re-mark this answer? It goes back into the queue. When you approve a new mark, the student's totals are adjusted by the difference — nothing is double-counted.")) return;
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  await Store.reopenResponse(id);
+  r.status = 'pending';
+  draftMarks[id] = r.mark;
+  renderMarking();
+}
+
+// ---------- class battle ----------
+function renderBattle(){
+  const classes = CLS();
+  const rows = classStandings(students, classMap, classes);
+  if (!rows.some(r => r.students)) {
+    $('battleBody').innerHTML = '<p class="muted">No students assigned to a class yet — assign them in the Class list tab.</p>';
+    $('battleTopics').innerHTML = '';
+    return;
+  }
+  const metrics = [
+    {label:'Total XP',                 fmt: r => r.totalXp.toLocaleString(), val: r => r.totalXp},
+    {label:'Average accuracy',         fmt: r => r.accuracy===null ? '—' : Math.round(r.accuracy*100) + '%', val: r => r.accuracy ?? -1},
+    {label:'Average XP per active player', fmt: r => r.avgXp.toLocaleString(), val: r => r.avgXp},
+  ];
+  let html = '';
+  for (const m of metrics) {
+    const best = Math.max(...rows.map(m.val));
+    const total = rows.reduce((a,r) => a + Math.max(m.val(r),0), 0) || 1;
+    html += `<div style="margin:16px 0 4px; font-size:.75rem; color:var(--ink2); text-transform:uppercase; letter-spacing:.04em">${m.label}</div>`;
+    rows.forEach(r => {
+      const leading = m.val(r) === best && best > 0;
+      html += `<div class="topicrow"><span style="width:60px; font-weight:800">${r.cls}</span>
+        <div class="tbar"><div style="width:${Math.max(m.val(r),0)/total*100}%; background:${leading?'var(--good)':'var(--accent)'}"></div></div>
+        <span style="width:110px; text-align:right; font-weight:${leading?'800':'600'}">${m.fmt(r)}${leading?' 👑':''}</span></div>`;
+    });
+  }
+  html += '<h2 style="margin-top:22px">Participation</h2><table><tr><th>Class</th><th>On list</th><th>Have played</th><th>Questions answered</th><th>Correct</th></tr>' +
+    rows.map(r => `<tr><td><b>${r.cls}</b></td><td>${r.students}</td><td>${r.active} (${r.students ? Math.round(r.active/r.students*100) : 0}%)</td><td>${r.answered}</td><td>${r.correct}</td></tr>`).join('') + '</table>';
+  $('battleBody').innerHTML = html;
+
+  // per-class topic accuracy
+  let th = '<table><tr><th>Topic</th>' + classes.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  for (const topic of Object.keys(SYLLABUS)) {
+    th += `<tr><td><b>${topic}</b></td>` + classes.map(c => {
+      let cc = 0, tt = 0;
+      students.filter(s => classOf(s) === c).forEach(s => { const p = s.totals.perTopic[topic]; if (p) { cc += p[0]; tt += p[1]; } });
+      return '<td>' + heatCell(tt ? cc/tt : null) + ` <span class="muted">${tt ? cc + '/' + tt : ''}</span></td>`;
+    }).join('') + '</tr>';
+  }
+  $('battleTopics').innerHTML = th + '</table>';
+}
+
+function showDetail(i){
+  const s = window._rows[i]._s;
+  $('dlgName').textContent = s.name;
+  let html = `<p class="muted">Level ${levelFromXp(s.xp)} · ${s.xp} XP · best streak ${s.bestStreak} · ${s.badges.length} badges · ${s.wrong.length} questions currently wrong</p>`;
+  if (s.sa && s.sa.marksTotal) html += `<p class="muted">✍️ Short answers: ${s.sa.count} marked · ${s.sa.marks}/${s.sa.marksTotal} marks (${Math.round(s.sa.marks/s.sa.marksTotal*100)}%)</p>`;
+  html += '<h2 style="margin-top:14px">Topic accuracy</h2>';
+  for (const topic of Object.keys(SYLLABUS)) {
+    const p = s.totals.perTopic[topic];
+    html += `<div class="topicrow"><span style="width:130px; font-size:.85rem">${topic}</span>${heatCell(p && p[1] ? p[0]/p[1] : null)}<span class="muted">${p ? p[0] + '/' + p[1] : ''}</span></div>`;
+  }
+  const weak = Object.entries(s.totals.perSub).filter(([,v]) => v[1] >= 2)
+    .map(([k,v]) => ({k, a: v[0]/v[1], v})).sort((x,y) => x.a - y.a).slice(0,5);
+  if (weak.length) {
+    html += '<h2 style="margin-top:14px">Weakest areas</h2>' + weak.map(w => {
+      const [topic, sub] = w.k.split('|');
+      return `<div class="topicrow"><span style="width:250px; font-size:.83rem">${sub} <span class="muted">(${topic})</span></span>${heatCell(w.a)}<span class="muted">${w.v[0]}/${w.v[1]}</span></div>`;
+    }).join('');
+  }
+  // ---- earned badges ----
+  const earned = BADGES.filter(b => s.badges.includes(b.id));
+  html += `<h2 style="margin-top:16px">Badges earned <span class="muted" style="font-weight:400">${earned.length} of ${BADGES.length}</span></h2>`;
+  html += earned.length
+    ? '<div class="badgegrid">' + earned.map(b =>
+        `<div class="badge" title="${b.desc}"><div class="be">${b.emoji}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('') + '</div>'
+    : '<p class="muted">No badges yet.</p>';
+
+  // ---- game mode summary ----
+  const bits = [];
+  if (s.daily) bits.push(`📆 Daily: best ${s.daily.best}/5 · 🔥 ${s.daily.streak} day streak (last played ${s.daily.date})`);
+  if (s.survival && s.survival.best) bits.push(`💀 Survival: best run ${s.survival.best} · ${s.survival.runs} run${s.survival.runs===1?'':'s'}`);
+  if (s.exams && s.exams.length) {
+    const best = s.exams.reduce((a,e) => e.pct > a.pct ? e : a);
+    bits.push(`📄 Exams: ${s.exams.length} sat · best ${best.c}/${best.n} (${best.pct}%, ${bandFromPct(best.pct).band})`);
+  }
+  if (s.duels && (s.duels.w + s.duels.l + s.duels.d)) bits.push(`🥊 Duels: ${s.duels.w}W–${s.duels.l}L–${s.duels.d}D`);
+  if (bits.length) html += '<h2 style="margin-top:16px">Game modes</h2>' + bits.map(b => `<p class="muted" style="margin:4px 0">${b}</p>`).join('');
+
+  html += '<h2 style="margin-top:14px">Quiz history</h2><table><tr><th>When</th><th>Mode</th><th>Score</th><th>Time</th></tr>' +
+    [...s.attempts].reverse().slice(0,15).map(a =>
+      `<tr><td>${fmtDate(a.d)}</td><td>${modeLabel(a)}</td><td>${scoreLabel(a)}</td><td>${Math.round(a.timeSec/60)}m</td></tr>`).join('') + '</table>';
+  html += `<div class="row" style="margin-top:16px">
+    <button class="btn" onclick="resetPin(${JSON.stringify(s.name).replace(/"/g,'&quot;')})">Reset PIN</button>
+    <button class="btn danger" onclick="wipeStudent(${JSON.stringify(s.name).replace(/"/g,'&quot;')})">Delete results</button></div>`;
+  $('dlgBody').innerHTML = html;
+  $('detailDlg').showModal();
+}
+// Clears the student's PIN so they're prompted to set a new one (entered twice) the
+// next time they pick their name on the student site.
+async function resetPin(name){
+  if (!confirm(`Reset ${name}'s PIN? They'll set a new one next time they sign in.`)) return;
+  const s = await Store.getStudent(name);
+  if (s) {
+    s.pin = null;
+    await Store.saveStudent(name, s);
+    // keep the in-memory list in sync so the roster stops showing "PIN set"
+    // without needing a manual refresh — same fix as assignClass uses.
+    const local = students.find(x => x.name === name);
+    if (local) local.pin = null;
+    renderRoster();
+  }
+  alert('PIN reset.');
+}
+async function wipeStudent(name){
+  if (!confirm(`Delete ALL results for ${name}? This cannot be undone.`)) return;
+  await Store.deleteStudent(name);
+  // otherwise their submitted short answers linger in the marking queue forever, still
+  // referencing a student record that no longer exists
+  await Store.deleteResponsesFor(name);
+  $('detailDlg').close(); load();
+}
+
+function renderHeatmap(){
+  const active = students.filter(s => s.attempts.length);
+  if (!active.length) { $('heatmap').innerHTML = '<p class="muted">No data yet.</p>'; return; }
+  const topics = Object.keys(SYLLABUS);
+  let html = '<table><tr><th>Student</th>' + topics.map(t => `<th>${t}</th>`).join('') + '<th>Overall</th></tr>';
+  active.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+    html += `<tr><td><b>${esc(s.name)}</b></td>` + topics.map(t => {
+      const p = s.totals.perTopic[t];
+      return '<td>' + heatCell(p && p[1] ? p[0]/p[1] : null) + '</td>';
+    }).join('') + '<td>' + heatCell(acc(s)) + '</td></tr>';
+  });
+  $('heatmap').innerHTML = html + '</table>';
+}
+
+function renderRoster(){
+  filterBar('rosterFilter', rosterFilter, 'setRosterFilter');
+  const list = roster.filter(n => inFilter(n, rosterFilter));
+  const counts = CLS().map(c => `${c}: ${roster.filter(n => classMap[n] === c).length}`).join(' · ');
+  const unassigned = roster.filter(n => !classMap[n]).length;
+  $('rosterList').innerHTML = list.length ? `<p class="muted" style="margin-bottom:10px">${counts}${unassigned ? ' · unassigned: ' + unassigned : ''}</p><table>` + list.map(n => {
+    const stu = students.find(s => s.name === n);
+    const played = !!(stu && stu.attempts.length);
+    const hasPin = !!(stu && stu.pin);
+    const cur = classMap[n] || '';
+    const jsName = JSON.stringify(n).replace(/"/g,'&quot;');
+    // a class removed in Settings can still be sitting in classMap for this student —
+    // show it instead of silently rendering as unassigned, so the teacher notices it
+    const staleOpt = (cur && !CLS().includes(cur))
+      ? `<option value="${cur}" selected>${esc(cur)} (removed class)</option>` : '';
+    const opts = ['<option value="">— unassigned —</option>']
+      .concat(CLS().map(c => `<option value="${c}"${cur===c?' selected':''}>${c}</option>`)).join('') + staleOpt;
+    const pinPill = hasPin
+      ? '<span class="pill" style="background:#d9f2e5; color:var(--good)">PIN set</span>'
+      : '<span class="pill" style="background:#ece2c8; color:#99a">no PIN yet</span>';
+    return `<tr><td><b>${esc(n)}</b> ${played ? '<span class="pill" style="background:#d9f2e5; color:var(--good)">active</span>' : '<span class="pill" style="background:#ece2c8; color:#99a">not yet played</span>'}<br>${pinPill}</td>
+      <td style="width:150px"><select style="width:100%" onchange="assignClass(${jsName}, this.value)">${opts}</select></td>
+      <td style="text-align:right; width:200px">${hasPin ? `<button class="btn small" onclick="resetPin(${jsName})">Reset PIN</button>` : ''} <button class="btn small danger" onclick="removeName(${jsName})">Remove</button></td></tr>`;
+  }).join('') + '</table>' : '<p class="muted">Nobody here — add names above, or change the filter.</p>';
+}
+
+function setRosterFilter(v){ rosterFilter = v; renderRoster(); }
+
+async function assignClass(name, cls){
+  classMap[name] = cls || undefined;
+  if (!cls) delete classMap[name];
+  await Store.setStudentClass(name, cls || null);
+  renderRoster(); renderStudents(); renderBattle();
+}
+
+async function addNames(){
+  const names = $('newNames').value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!names.length) return;
+  // Two differently-spelled names (e.g. "Anne-Marie" vs "Anne Marie") can slug to the
+  // same Firestore doc id and silently merge into one student record. Catch that
+  // before saving anything — against the existing roster and within the new batch.
+  for (const n of names) {
+    const slug = Store.slug(n);
+    const clash = roster.find(existing => existing !== n && Store.slug(existing) === slug) ||
+      names.find(other => other !== n && Store.slug(other) === slug);
+    if (clash) {
+      alert(`"${n}" and "${clash}" would collide as the same student record (same id once slugified). Fix the names and try again — nothing was added.`);
+      return;
+    }
+  }
+  const cls = $('newClass').value;
+  await Store.saveRoster([...roster, ...names]);
+  if (cls) await Store.setClassesBulk(Object.fromEntries(names.map(n => [n, cls])));
+  $('newNames').value = '';
+  load();
+}
+async function removeName(name){
+  if (!confirm(`Remove ${name} from the class list? (Their results are kept unless you delete them.)`)) return;
+  await Store.removeFromRoster(name);
+  load();
+}
+
+// ---------- settings ----------
+// Overrides saved here live in Firestore (meta/settings) and win over the matching
+// constants in config.js on every device that opens either site — see Store.applySettings.
+const QUIZ_OPTIONS_DEFAULTS = {secondsPerQuestion: 90, xpPerCorrect: 10, xpPerMark: 10};
+function renderSettings(){
+  const opts = (typeof QUIZ_OPTIONS !== 'undefined') ? QUIZ_OPTIONS : QUIZ_OPTIONS_DEFAULTS;
+  $('settingsClasses').value = '';
+  $('settingsClassesNow').textContent = CLS().join(', ');
+  $('settingsTimer').value = opts.secondsPerQuestion;
+  $('settingsXpCorrect').value = opts.xpPerCorrect;
+  $('settingsXpMark').value = opts.xpPerMark;
+}
+async function saveTeacherPassword(){
+  const pw = $('settingsPw').value;
+  await Store.saveSettings({teacherPassword: pw || null});
+  window.TEACHER_PASSWORD_OVERRIDE = pw || null;
+  $('settingsPw').value = '';
+  $('pwSaveMsg').textContent = pw ? 'Password updated.' : 'Reverted to the password in config.js.';
+  $('pwSaveMsg').style.display = 'block';
+}
+async function saveClassesSetting(){
+  const list = $('settingsClasses').value.split(',').map(s => s.trim()).filter(Boolean);
+  if (!list.length) { alert('Enter at least one class name.'); return; }
+  await Store.saveSettings({classes: list});
+  CLASSES.length = 0; CLASSES.push(...list);
+  // saving the class list doesn't touch classMap — a student whose class no longer
+  // exists would otherwise silently drop out of Class battle. Flag it so the teacher
+  // reassigns them on the Class list tab; we never auto-migrate their assignment.
+  const orphaned = Object.entries(classMap).filter(([n,c]) => c && !list.includes(c)).map(([n]) => n);
+  alert('Classes updated: ' + list.join(', ') +
+    (orphaned.length ? '\n\nThese students are assigned to a class that no longer exists — reassign them on the Class list tab:\n' + orphaned.join(', ') : ''));
+  load();
+}
+async function saveQuizOptions(){
+  const patch = {
+    secondsPerQuestion: Math.max(10, +$('settingsTimer').value || QUIZ_OPTIONS.secondsPerQuestion),
+    xpPerCorrect: Math.max(1, +$('settingsXpCorrect').value || QUIZ_OPTIONS.xpPerCorrect),
+    xpPerMark: Math.max(1, +$('settingsXpMark').value || QUIZ_OPTIONS.xpPerMark),
+  };
+  const cur = (await Store.getSettings()).quizOptions || {};
+  await Store.saveSettings({quizOptions: {...cur, ...patch}});
+  Object.assign(QUIZ_OPTIONS, patch);
+  alert('Quiz options saved. Takes effect on the student site next time it loads.');
+}
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@
 //    visitors and students out; it is not enough to protect anything sensitive.
 //    Change it here, or from the dashboard's own Settings tab (which overrides
 //    this value without needing a re-deploy).
-const TEACHER_PASSWORD = "change-me";
+const TEACHER_PASSWORD = "4444";
 
 // 2. Link to the student game (shown as a button in the dashboard).
 //    Leave "" to hide the button.
